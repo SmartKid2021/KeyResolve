@@ -19,7 +19,6 @@ This approach works reliably on **Wayland**, **X11**, and in **games that use ra
 * ✅ No kernel modules
 * ✅ No compositor plugins
 * ✅ Clean Ctrl-C shutdown (no stuck keys)
-* ✅ Interactive keyboard selection (via `indicatif`)
 
 ---
 
