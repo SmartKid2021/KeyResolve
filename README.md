@@ -1,4 +1,4 @@
-# snap-tap-linux
+# KeyResolve
 
 **Snap Tap / SOCD-style keyboard input handling for Linux (Wayland & X11)**
 
