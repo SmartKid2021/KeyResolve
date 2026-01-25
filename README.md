@@ -20,7 +20,11 @@ This approach works reliably on **Wayland**, **X11**, and in **games that use ra
 
 ## Installation
 
-### 1. Build from source
+### Download from GitHub Releases
+
+Navigate to the [Releases](https://github.com/Antosser/KeyResolve/releases) and download the binary for your architecture.
+
+### Build from source
 
 ```bash
 git clone https://github.com/Antosser/KeyResolve.git
