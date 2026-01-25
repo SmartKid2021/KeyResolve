@@ -12,7 +12,7 @@ This approach works reliably on **Wayland**, **X11**, and in **games that use ra
 ## Features
 
 * ✅ Last-pressed-wins logic for movement keys
-* ✅ Guarantees no simultaneous `A+D`
+* ✅ Guarantees no simultaneous `A+D` and `W+S`
 * ✅ Works on **Wayland and X11**
 * ✅ Game-compatible (raw input / evdev level)
 * ✅ Written in **Rust**
@@ -20,14 +20,6 @@ This approach works reliably on **Wayland**, **X11**, and in **games that use ra
 * ✅ No compositor plugins
 * ✅ Clean Ctrl-C shutdown (no stuck keys)
 * ✅ Interactive keyboard selection (via `indicatif`)
-
----
-
-## How it works (high level)
-
-**Physical keyboard → Linux evdev → snap-tap-linux (state machine) → Virtual keyboard (uinput) → Game / App**
-
-The original keyboard is **exclusively grabbed**, and all corrected input is sent through a virtual keyboard that applications see as real hardware.
 
 ---
 
@@ -49,7 +41,7 @@ target/release/snap-tap-linux
 
 ---
 
-## Permissions & udev setup (required)
+## Permissions & udev setup (required unless root)
 
 `snap-tap-linux` needs access to:
 
@@ -96,17 +88,17 @@ Once running:
 
 * Pressing **A** releases **D**
 * Pressing **D** releases **A**
-* Pressing W releases S
-* Pressing S releases W
+* Pressing **W** releases **S**
+* Pressing **S** releases **W**
 * When the last pressed key is released, the previous still-held key (if any) is restored
 
 Exit cleanly with **Ctrl+C**.
 
 ---
 
-## Safety notes (important)
+## Safety notes
 
-* ⚠️ The selected keyboard is **exclusively grabbed**
+* The selected keyboard is **exclusively grabbed**
 * If the program crashes, input from that keyboard may temporarily stop
 * Always test from:
 
@@ -164,5 +156,5 @@ Please keep changes:
 
 ## License
 
-MIT License
+`GPL-3.0` License
 See `LICENSE` for details.
