@@ -1,203 +1,220 @@
 use anyhow::{Context, Result};
-use evdev::{Device, EventType, InputEvent, uinput::VirtualDevice};
+use evdev::{Device, EventType, InputEvent, KeyCode, uinput::VirtualDevice};
 use nix::poll::{PollFd, PollFlags, poll};
-use std::io::Write;
-use std::os::fd::{AsRawFd, BorrowedFd};
 use std::{
+    io::Write,
+    os::fd::{AsRawFd, BorrowedFd},
     path::PathBuf,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
     },
+    time::Duration,
 };
 
-fn is_likely_keyboard(dev: &Device) -> bool {
-    dev.supported_keys()
+fn main() -> Result<()> {
+    let keyboards = enumerate_keyboards()?;
+    let selected = select_keyboard(&keyboards)?;
+
+    println!("Waiting 3 seconds. Do not press any keys.");
+    std::thread::sleep(Duration::from_secs(3));
+
+    let (path, _) = &keyboards[selected];
+    let mut device = Device::open(path).context("Failed to reopen selected device")?;
+
+    println!("Grabbing {}", path.display());
+    device.grab().context("Failed to grab device")?;
+
+    let mut vdev = create_virtual_keyboard(&device)?;
+    let running = install_ctrlc_handler()?;
+
+    run_event_loop(&mut device, &mut vdev, running)?;
+
+    println!("Releasing keyboard");
+    device.ungrab()?;
+
+    Ok(())
+}
+
+fn is_likely_keyboard(device: &Device) -> bool {
+    device
+        .supported_keys()
         .map(|keys| {
-            keys.contains(evdev::KeyCode::KEY_A)
-                && keys.contains(evdev::KeyCode::KEY_Z)
-                && keys.contains(evdev::KeyCode::KEY_SPACE)
+            keys.contains(KeyCode::KEY_A)
+                && keys.contains(KeyCode::KEY_Z)
+                && keys.contains(KeyCode::KEY_SPACE)
         })
         .unwrap_or(false)
 }
 
-fn main() -> Result<()> {
-    // ---------- enumerate keyboards ----------
+fn emit_key(vdev: &mut VirtualDevice, key: KeyCode, value: i32) {
+    let event = InputEvent::new(EventType::KEY.0, key.code(), value);
+    let _ = vdev.emit(&[event]);
+}
+
+fn handle_axis_pair(
+    vdev: &mut VirtualDevice,
+    pressed: bool,
+    this_down: &mut bool,
+    other_down: bool,
+    this_key: KeyCode,
+    other_key: KeyCode,
+) {
+    *this_down = pressed;
+
+    emit_key(vdev, this_key, pressed as i32);
+
+    if other_down {
+        emit_key(vdev, other_key, (!pressed) as i32);
+    }
+}
+
+fn enumerate_keyboards() -> Result<Vec<(PathBuf, String)>> {
     let mut keyboards = Vec::new();
 
-    for path in evdev::enumerate() {
-        let dev = Device::open(&path.0).with_context(|| format!("Failed to open {:?}", path))?;
+    for entry in evdev::enumerate() {
+        let device =
+            Device::open(&entry.0).with_context(|| format!("Failed to open {:?}", entry.0))?;
 
-        if is_likely_keyboard(&dev) {
-            let name = dev.name().unwrap_or("Unknown keyboard").to_string();
-            keyboards.push((path, name));
+        if is_likely_keyboard(&device) {
+            let name = device.name().unwrap_or("Unknown keyboard").to_string();
+            keyboards.push((entry.0, name));
         }
     }
 
     if keyboards.is_empty() {
-        anyhow::bail!("No keyboards found");
+        anyhow::bail!("No keyboards found. Do you have required permissions?");
     }
 
-    // ---------- user selection ----------
-    let items: Vec<String> = keyboards
-        .iter()
-        .map(|(p, n)| format!("{n} ({})", p.0.display()))
-        .collect();
+    Ok(keyboards)
+}
 
-    for (idx, item) in items.iter().enumerate() {
-        println!("{}: {}", idx, item);
+fn select_keyboard(keyboards: &[(PathBuf, String)]) -> Result<usize> {
+    for (idx, (path, name)) in keyboards.iter().enumerate() {
+        println!("{idx}: {name} ({})", path.display());
     }
 
-    let idx = {
-        let mut input = String::new();
-        print!("Select keyboard: ");
-        std::io::stdout().flush()?;
-        std::io::stdin().read_line(&mut input)?;
-        input.trim().parse::<usize>()?
-    };
+    print!("Select keyboard: ");
+    std::io::stdout().flush()?;
 
-    println!("Selected {}", idx);
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input)?;
 
-    println!("Waiting 3 seconds. Do not press any keys.");
-    std::thread::sleep(std::time::Duration::from_secs(3));
+    Ok(input.trim().parse()?)
+}
 
-    let ((path, _), _): &((PathBuf, Device), String) = &keyboards[idx];
-    let mut dev = Device::open(path)?;
-    println!("Grabbing {}", path.display());
+fn create_virtual_keyboard(device: &Device) -> Result<VirtualDevice> {
+    let keys = device
+        .supported_keys()
+        .context("Failed to query supported keys")?;
 
-    // ---------- grab ----------
-    dev.grab()?;
-
-    // ---------- virtual keyboard ----------
-    let keys = dev.supported_keys().unwrap();
-    let mut vdev = VirtualDevice::builder()?
+    VirtualDevice::builder()?
         .name("snap-tap-virtual")
         .with_keys(keys)?
-        .build()?;
+        .build()
+        .context("Failed to create virtual keyboard")
+}
 
-    // ---------- clean exit handling ----------
+fn install_ctrlc_handler() -> Result<Arc<AtomicBool>> {
     let running = Arc::new(AtomicBool::new(true));
-    {
-        let r = running.clone();
-        ctrlc::set_handler(move || {
-            r.store(false, Ordering::SeqCst);
-        })?;
-    }
+    let flag = running.clone();
 
-    // ---------- state ----------
+    ctrlc::set_handler(move || {
+        flag.store(false, Ordering::SeqCst);
+    })?;
+
+    Ok(running)
+}
+
+fn run_event_loop(
+    device: &mut Device,
+    vdev: &mut VirtualDevice,
+    running: Arc<AtomicBool>,
+) -> Result<()> {
     let mut a_down = false;
     let mut d_down = false;
     let mut w_down = false;
     let mut s_down = false;
 
-    // prepare poll
-    let raw_fd = dev.as_raw_fd();
-    // SAFETY:
-    // - raw_fd comes from a live evdev::Device
-    // - dev outlives the poll loop
-    // - poll() does not take ownership of the FD
+    let raw_fd = device.as_raw_fd();
+
     let borrowed_fd = unsafe { BorrowedFd::borrow_raw(raw_fd) };
     let mut poll_fds = [PollFd::new(borrowed_fd, PollFlags::POLLIN)];
 
-    // ---------- event loop ----------
     while running.load(Ordering::SeqCst) {
-        // wait up to 50 ms for input
         let ready = match poll(&mut poll_fds, 50u16) {
             Ok(n) => n,
-            Err(nix::errno::Errno::EINTR) => continue, // Ctrl+C interrupted poll
+            Err(nix::errno::Errno::EINTR) => continue,
             Err(e) => return Err(e.into()),
         };
 
         if ready == 0 {
-            // timeout: no events, loop again and re-check running
             continue;
         }
 
-        if let Some(revents) = poll_fds[0].revents() {
-            if !revents.contains(PollFlags::POLLIN) {
+        if !poll_fds[0]
+            .revents()
+            .map(|e| e.contains(PollFlags::POLLIN))
+            .unwrap_or(false)
+        {
+            continue;
+        }
+
+        for event in device.fetch_events()? {
+            if event.event_type() != EventType::KEY {
+                let _ = vdev.emit(&[event]);
                 continue;
             }
 
-            // safe: read will not block now
-            for ev in dev.fetch_events()? {
-                if ev.event_type() == EventType::KEY {
-                    match ev.code() {
-                        code if code == evdev::KeyCode::KEY_A.code() => {
-                            if ev.value() == 1 {
-                                a_down = true;
-                                emit(&mut vdev, evdev::KeyCode::KEY_A, 1);
-                                if d_down {
-                                    emit(&mut vdev, evdev::KeyCode::KEY_D, 0);
-                                }
-                            } else if ev.value() == 0 {
-                                a_down = false;
-                                emit(&mut vdev, evdev::KeyCode::KEY_A, 0);
-                                if d_down {
-                                    emit(&mut vdev, evdev::KeyCode::KEY_D, 1);
-                                }
-                            }
-                        }
-                        code if code == evdev::KeyCode::KEY_D.code() => {
-                            if ev.value() == 1 {
-                                d_down = true;
-                                emit(&mut vdev, evdev::KeyCode::KEY_D, 1);
-                                if a_down {
-                                    emit(&mut vdev, evdev::KeyCode::KEY_A, 0);
-                                }
-                            } else if ev.value() == 0 {
-                                d_down = false;
-                                emit(&mut vdev, evdev::KeyCode::KEY_D, 0);
-                                if a_down {
-                                    emit(&mut vdev, evdev::KeyCode::KEY_A, 1);
-                                }
-                            }
-                        }
-                        code if code == evdev::KeyCode::KEY_W.code() => {
-                            if ev.value() == 1 {
-                                w_down = true;
-                                emit(&mut vdev, evdev::KeyCode::KEY_W, 1);
-                                if s_down {
-                                    emit(&mut vdev, evdev::KeyCode::KEY_S, 0);
-                                }
-                            } else if ev.value() == 0 {
-                                w_down = false;
-                                emit(&mut vdev, evdev::KeyCode::KEY_W, 0);
-                                if s_down {
-                                    emit(&mut vdev, evdev::KeyCode::KEY_S, 1);
-                                }
-                            }
-                        }
-                        code if code == evdev::KeyCode::KEY_S.code() => {
-                            if ev.value() == 1 {
-                                s_down = true;
-                                emit(&mut vdev, evdev::KeyCode::KEY_S, 1);
-                                if w_down {
-                                    emit(&mut vdev, evdev::KeyCode::KEY_W, 0);
-                                }
-                            } else if ev.value() == 0 {
-                                s_down = false;
-                                emit(&mut vdev, evdev::KeyCode::KEY_S, 0);
-                                if w_down {
-                                    emit(&mut vdev, evdev::KeyCode::KEY_W, 1);
-                                }
-                            }
-                        }
-                        _ => {
-                            // forward original event
-                            let _ = vdev.emit(&[ev]);
-                        }
-                    }
+            let pressed = event.value() == 1;
+
+            match event.code() {
+                code if code == KeyCode::KEY_A.code() => {
+                    handle_axis_pair(
+                        vdev,
+                        pressed,
+                        &mut a_down,
+                        d_down,
+                        KeyCode::KEY_A,
+                        KeyCode::KEY_D,
+                    );
+                }
+                code if code == KeyCode::KEY_D.code() => {
+                    handle_axis_pair(
+                        vdev,
+                        pressed,
+                        &mut d_down,
+                        a_down,
+                        KeyCode::KEY_D,
+                        KeyCode::KEY_A,
+                    );
+                }
+                code if code == KeyCode::KEY_W.code() => {
+                    handle_axis_pair(
+                        vdev,
+                        pressed,
+                        &mut w_down,
+                        s_down,
+                        KeyCode::KEY_W,
+                        KeyCode::KEY_S,
+                    );
+                }
+                code if code == KeyCode::KEY_S.code() => {
+                    handle_axis_pair(
+                        vdev,
+                        pressed,
+                        &mut s_down,
+                        w_down,
+                        KeyCode::KEY_S,
+                        KeyCode::KEY_W,
+                    );
+                }
+                _ => {
+                    let _ = vdev.emit(&[event]);
                 }
             }
         }
     }
 
-    println!("Releasing keyboard");
-    dev.ungrab()?;
     Ok(())
-}
-
-fn emit(vdev: &mut evdev::uinput::VirtualDevice, key: evdev::KeyCode, value: i32) {
-    let ev = InputEvent::new(EventType::KEY.0, key.code(), value);
-    let _ = vdev.emit(&[ev]);
 }
