@@ -3,6 +3,16 @@
 version = 4
 
 [[package]]
+name = "KeyResolve"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ctrlc",
+ "evdev",
+ "nix 0.31.1",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.100"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -150,16 +160,6 @@ name = "radium"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
-
-[[package]]
-name = "snap-tap-linux"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ctrlc",
- "evdev",
- "nix 0.31.1",
-]
 
 [[package]]
 name = "tap"
