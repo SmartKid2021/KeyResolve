@@ -166,6 +166,12 @@ fn run_event_loop(
                 continue;
             }
 
+            let event_value = event.value();
+
+            if event_value == 2 {
+                continue;
+            }
+
             let pressed = event.value() == 1;
 
             match event.code() {
