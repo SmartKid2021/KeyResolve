@@ -7,8 +7,6 @@
 It works by intercepting raw keyboard events via `evdev`, applying deterministic key logic, and re-emitting corrected events through a virtual keyboard (`uinput`).
 This approach works reliably on **Wayland**, **X11**, and in **games that use raw input**.
 
----
-
 ## Features
 
 * ✅ Last-pressed-wins logic for movement keys
@@ -19,8 +17,6 @@ This approach works reliably on **Wayland**, **X11**, and in **games that use ra
 * ✅ No kernel modules
 * ✅ No compositor plugins
 * ✅ Clean Ctrl-C shutdown (no stuck keys)
-
----
 
 ## Installation
 
@@ -37,8 +33,6 @@ The binary will be located at:
 ```
 target/release/snap-tap-linux
 ```
-
----
 
 ## Permissions & udev setup (required unless root)
 
@@ -71,8 +65,6 @@ sudo usermod -aG input $USER
 
 Then **log out or reboot**.
 
----
-
 ## Usage
 
 Run the program:
@@ -93,8 +85,6 @@ Once running:
 
 Exit cleanly with **Ctrl+C**.
 
----
-
 ## Safety notes
 
 * The selected keyboard is **exclusively grabbed**
@@ -106,8 +96,6 @@ Exit cleanly with **Ctrl+C**.
   * with a second keyboard available
 
 The program handles Ctrl-C correctly and releases all keys on exit.
-
----
 
 ## Supported platforms
 
@@ -122,8 +110,6 @@ The program handles Ctrl-C correctly and releases all keys on exit.
 * X11 remapping does not work reliably on Wayland
 * Many games bypass X11 entirely
 * `snap-tap-linux` operates at the **evdev level**, where games actually read input
-
----
 
 ## Contributing
 
@@ -150,8 +136,6 @@ Please keep changes:
 * Idiomatic Rust
 * Well-commented
 * Minimal unsafe code (preferably none)
-
----
 
 ## License
 
