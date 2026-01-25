@@ -51,8 +51,14 @@ jobs:
         with:
           path: ./dist
 
+      - name: Prepare release artifacts
+        run: |
+          mkdir -p release_files
+          cp dist/KeyResolve-x86_64-unknown-linux-gnu/KeyResolve release_files/KeyResolve-x86_64
+          cp dist/KeyResolve-aarch64-unknown-linux-gnu/KeyResolve release_files/KeyResolve-aarch64
+
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: ./dist/*
+          artifacts: release_files/*
           tag: ${{ github.ref_name }}
