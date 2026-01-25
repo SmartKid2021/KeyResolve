@@ -2,7 +2,7 @@
 
 **Snap Tap / SOCD-style keyboard input handling for Linux (Wayland & X11)**
 
-`snap-tap-linux` is a low-latency userspace input interceptor for Linux that enforces *mutually exclusive movement keys* (e.g. **A/D**, **W/S**) using a **last-pressed-wins** policy.
+`KeyResolve` is a low-latency userspace input interceptor for Linux that enforces *mutually exclusive movement keys* (e.g. **A/D**, **W/S**) using a **last-pressed-wins** policy.
 
 It works by intercepting raw keyboard events via `evdev`, applying deterministic key logic, and re-emitting corrected events through a virtual keyboard (`uinput`).
 This approach works reliably on **Wayland**, **X11**, and in **games that use raw input**.
@@ -23,20 +23,20 @@ This approach works reliably on **Wayland**, **X11**, and in **games that use ra
 ### 1. Build from source
 
 ```bash
-git clone https://github.com/Antosser/snap-tap-linux.git
-cd snap-tap-linux
+git clone https://github.com/Antosser/KeyResolve.git
+cd KeyResolve
 cargo build --release
 ```
 
 The binary will be located at:
 
 ```
-target/release/snap-tap-linux
+target/release/KeyResolve
 ```
 
 ## Permissions & udev setup (required unless root)
 
-`snap-tap-linux` needs access to:
+`KeyResolve` needs access to:
 
 * `/dev/input/event*` (read)
 * `/dev/uinput` (write)
@@ -70,7 +70,7 @@ Then **log out or reboot**.
 Run the program:
 
 ```bash
-./snap-tap-linux
+./KeyResolve
 ```
 
 You will be prompted to select which keyboard to grab.
@@ -109,7 +109,7 @@ The program handles Ctrl-C correctly and releases all keys on exit.
 
 * X11 remapping does not work reliably on Wayland
 * Many games bypass X11 entirely
-* `snap-tap-linux` operates at the **evdev level**, where games actually read input
+* `KeyResolve` operates at the **evdev level**, where games actually read input
 
 ## Contributing
 
