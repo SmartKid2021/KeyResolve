@@ -87,6 +87,8 @@ fn main() -> Result<()> {
     // ---------- state ----------
     let mut a_down = false;
     let mut d_down = false;
+    let mut w_down = false;
+    let mut s_down = false;
 
     // prepare poll
     let raw_fd = dev.as_raw_fd();
@@ -147,6 +149,36 @@ fn main() -> Result<()> {
                                 emit(&mut vdev, evdev::KeyCode::KEY_D, 0);
                                 if a_down {
                                     emit(&mut vdev, evdev::KeyCode::KEY_A, 1);
+                                }
+                            }
+                        }
+                        code if code == evdev::KeyCode::KEY_W.code() => {
+                            if ev.value() == 1 {
+                                w_down = true;
+                                emit(&mut vdev, evdev::KeyCode::KEY_W, 1);
+                                if s_down {
+                                    emit(&mut vdev, evdev::KeyCode::KEY_S, 0);
+                                }
+                            } else if ev.value() == 0 {
+                                w_down = false;
+                                emit(&mut vdev, evdev::KeyCode::KEY_W, 0);
+                                if s_down {
+                                    emit(&mut vdev, evdev::KeyCode::KEY_S, 1);
+                                }
+                            }
+                        }
+                        code if code == evdev::KeyCode::KEY_S.code() => {
+                            if ev.value() == 1 {
+                                s_down = true;
+                                emit(&mut vdev, evdev::KeyCode::KEY_S, 1);
+                                if w_down {
+                                    emit(&mut vdev, evdev::KeyCode::KEY_W, 0);
+                                }
+                            } else if ev.value() == 0 {
+                                s_down = false;
+                                emit(&mut vdev, evdev::KeyCode::KEY_S, 0);
+                                if w_down {
+                                    emit(&mut vdev, evdev::KeyCode::KEY_W, 1);
                                 }
                             }
                         }
